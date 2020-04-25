@@ -28,25 +28,42 @@
 
 from random import randint
 from board import TX, RX, A1
-import busio, digitalio, time, random, math
+import busio, digitalio, time, math
 
 # MatrixN controls "n" matrices
-from max7219 import MatrixN
+from ledmatrix import MatrixN
 
-# Pixel width and height of world (should be multiple of 8)
+# Pixel width and height of world (should be multiple of 
+# 8 if using an LED grid)
 DISPLAY_WIDTH       = const(16)
 DISPLAY_HEIGHT      = const(8)
-# Number of displays required for DISPLAY_WIDTH pixels
-DISPLAY_NUMBER      = math.ceil(DISPLAY_WIDTH / 8)
-# Brightness of displays (0-15)
+
+# Display brightness (0-15)
 DISPLAY_BRIGHTNESS  = 0
 
-# LED Grid pins/setup
+# Output can be directed to the LED grid, print (serial out),
+# or both: show_world(w, 'print', 'led_grid')
+OUTPUT_MODE = 'led_grid'
+# OUTPUT_MODE = 'print'
+
+# How to seed the world (other options are available, see below)
+LIFE_SEED = 'random'
+# LIFE_SEED = 'carousel'
+
+# Options for generation delay, maximum number of generations,
+# and, the pause in the timeline between simulations
+GENERATION_DELAY = .1
+GENERATION_MAXIMUM = 50
+TIMELINE_PAUSE = 1.0
+
+# LED Grid pins/ SPI setup
 clk = RX
 din = TX
 cs = digitalio.DigitalInOut(A1) 
 spi = busio.SPI(clk, MOSI=din)
-display = MatrixN(spi, cs, DISPLAY_NUMBER)
+
+# Display is mapped to a number of 8x8 LED grids
+display = MatrixN(spi, cs, DISPLAY_WIDTH, DISPLAY_HEIGHT)
 
 # Initialize the display
 display.init_display()
@@ -207,13 +224,13 @@ def seed_world(w, *argv):
         try:
             orientation = randint(0,3)
             cell = 1
-            for r in range(rows):
+            for r in range(8):
                 cell += (columns+2)
-                for c in range(columns):
-                    if   orientation == 0: w['cells'][cell+c] = pattern[(r*columns) + c] == ord('O')
-                    elif orientation == 1: w['cells'][cell+c] = pattern[(r*columns) + (rows-c-1)] == ord('O')
-                    elif orientation == 2: w['cells'][cell+c] = pattern[((rows-r-1)*columns) + c] == ord('O')
-                    elif orientation == 3: w['cells'][cell+c] = pattern[((rows-r-1)*columns) + (rows-c-1)] == ord('O')
+                for c in range(8):
+                    if   orientation == 0: w['cells'][cell+c] = pattern[(r*8) + c] == ord('O')
+                    elif orientation == 1: w['cells'][cell+c] = pattern[(r*8) + (8-c-1)] == ord('O')
+                    elif orientation == 2: w['cells'][cell+c] = pattern[((8-r-1)*8) + c] == ord('O')
+                    elif orientation == 3: w['cells'][cell+c] = pattern[((8-r-1)*8) + (8-c-1)] == ord('O')
         except:
             pass
 
@@ -234,7 +251,9 @@ def next_generation(w):
             world_cell = row_start + c
             # Take a census of this cells neighbors
             census = 0
-            for o in w['offsets']: census += w['old_cells'][world_cell+o]
+            for o in w['offsets']:
+                census += w['old_cells'][world_cell+o]
+            # census = sum([w['old_cells'][world_cell+o] for o in w['offsets']])
             # Apply Conway's rules:
             # Cells with <2 or >3 neighbors die
             # Cells with exactly 3 neighbors give birth
@@ -297,19 +316,20 @@ def led_world(w):
 #
 def live_life(w, t, max, *argv):
     stable = False
-    generation = max
-    while not stable and generation > 0:
-        time.sleep(t)
+    for g in range(GENERATION_MAXIMUM):
         show_world(w, *argv)
         stable = next_generation(w)
-        generation -= 1
+        if stable: break
+        time.sleep(t)
 
 # Create a world
 w = world(DISPLAY_WIDTH, DISPLAY_HEIGHT)
 
 # Run continuous simulations seeding a new world each time
 # Default world is 'random', but can be any number of shapes
-# 'random', 'frogger', 'clapper', 'blinkers',
+# including 'carousel', which randomly chooses a seed pattern
+#
+# 'random', 'carousel', frogger', 'clapper', 'blinkers',
 # 'glider', 'bullseye'
 # examples:
 #   seed_world(x)
@@ -317,6 +337,6 @@ w = world(DISPLAY_WIDTH, DISPLAY_HEIGHT)
 #   seed_world(x, 'blinkers', 'clapper')
 #
 while True:
-    seed_world(w, 'random')
-    live_life(w, .1, 50, 'led_grid')
-    time.sleep(1)
+    seed_world(w, LIFE_SEED)
+    live_life(w, GENERATION_DELAY, GENERATION_MAXIMUM, OUTPUT_MODE)
+    time.sleep(TIMELINE_PAUSE)
