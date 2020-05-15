@@ -37,12 +37,15 @@ Technically, the grid is bordered with zeros so there are some extra cells in th
 
 For each generation, A census is taken for each cell by counting neighbors using offsets from the current cell (for an 8x8 grid the offsets are -11, -10, -9, -1, +1, 9, 10, 11). Once the cell census it complete, the next generation is calculated according to Life's rules.
 
-These scripts require using the following CircuitPython modules:
+These scripts require the following adafruit CircuitPython modules:
 
 **adafruit_bus_device**  
-**ledmatrix.py**  
 **adafruit_max7219**  
 **adafruit_framebuf.mpy**  
+
+And the following custom module ([https://github.com/robertgallup/circuitpython-ledmatrix]()):
+
+**ledmatrix.py**    
 
 ## Hardware Connections
 
