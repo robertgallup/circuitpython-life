@@ -42,8 +42,8 @@ DISPLAY_HEIGHT      = const(8)
 DISPLAY_BRIGHTNESS  = 0
 
 # Output can be directed to the LED grid, print (serial out),
-# or both: show_world(w, 'print', 'led_grid')
-OUTPUT_MODE = 'led_grid'
+# or both: show_world(w, 'print', 'matrix')
+OUTPUT_MODE = 'matrix'
 # OUTPUT_MODE = 'print'
 
 # How to seed the world (other options are available, see below)
@@ -255,13 +255,10 @@ def next_generation(w):
                 census += w['old_cells'][world_cell+o]
             # census = sum([w['old_cells'][world_cell+o] for o in w['offsets']])
             # Apply Conway's rules:
+            # Cells with 2 neighbors don't change
+            # Cells with 3 neighbors give birth
             # Cells with <2 or >3 neighbors die
-            # Cells with exactly 3 neighbors give birth
-            # Everything else stays the same
-            if (census<2 or census>3):
-                w['cells'][world_cell] = 0
-            elif (census==3):
-                w['cells'][world_cell] = 1
+            if census != 2: w['cells'][world_cell] = 1 if (census == 3) else 0
 
     # Return True if population is stable (i.e. new == old), False otherwise        
     return (w['cells']==w['old_cells'])
@@ -273,8 +270,8 @@ def show_world(w, *argv):
     for type in displays:
         if type == 'print':
             print_world(w)
-        elif type == 'led_grid':
-            led_world(w)
+        elif type == 'matrix':
+            matrix_world(w)
 
 def print_world(w):
 #
@@ -288,7 +285,7 @@ def print_world(w):
         print()
     print('\n')
 
-def led_world(w):
+def matrix_world(w):
     rows = w["rows"]
     columns = w["columns"]
     display.fill(0)
@@ -311,8 +308,8 @@ def led_world(w):
 #
 #   live_life(w, .5, 50)
 #   live_life(w, .25, 70, 'print')
-#   live_life(w, .25, 70, 'led_grid')
-#   live_life(w, .25, 70, 'print', 'led_grid')
+#   live_life(w, .25, 70, 'matrix')
+#   live_life(w, .25, 70, 'print', 'matrix')
 #
 def live_life(w, t, max, *argv):
     stable = False
