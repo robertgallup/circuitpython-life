@@ -37,6 +37,7 @@ from ledmatrix import MatrixN
 # 8 if using an LED grid)
 DISPLAY_WIDTH       = const(16)
 DISPLAY_HEIGHT      = const(8)
+MATRIX_ROTATE       = True
 
 # Display brightness (0-15)
 DISPLAY_BRIGHTNESS  = 0
@@ -68,8 +69,8 @@ display = MatrixN(spi, cs, DISPLAY_WIDTH, DISPLAY_HEIGHT)
 # Initialize the display
 display.init_display()
 display.brightness(DISPLAY_BRIGHTNESS)
-display.fill(0)
-display.show()
+# display.fill(0)
+# display.show()
 
 # Returns a new world. Specify width and height.
 def world(width, height):
@@ -293,7 +294,13 @@ def matrix_world(w):
         start_cell = columns+3 + r*(columns+2)
         for c in range(columns):
             if (w['cells'][start_cell+c] != 0):
-                display.pixel(c,r,1)
+                if MATRIX_ROTATE:
+                    x = ((c//8)*8) + 7 - r
+                    y = ((r//8)*8) + c % 8
+                else:
+                    x = c
+                    y = r
+                display.pixel(x,y,1)
     display.show()
 
 # Run a single simulation until the world is stable
