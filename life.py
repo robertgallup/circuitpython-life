@@ -24,7 +24,7 @@
 # In data, the world is represented as a linear array of bytes.
 # Logically, the world is an nxm grid surrounded by a layer of zeros
 # The zeros are a void barrier that limits the civilization
-# 
+#
 
 from random import randint
 from board import TX, RX, A1
@@ -33,10 +33,10 @@ import busio, digitalio, time, math
 # MatrixN controls "n" matrices
 from ledmatrix import MatrixN
 
-# Pixel width and height of world (should be multiple of 
+# Pixel width and height of world (should be multiple of
 # 8 if using an LED grid)
 DISPLAY_WIDTH       = const(16)
-DISPLAY_HEIGHT      = const(8)
+DISPLAY_HEIGHT      = const(16)
 MATRIX_ROTATE       = True
 
 # Display brightness (0-15)
@@ -60,7 +60,7 @@ TIMELINE_PAUSE = 1.0
 # LED Grid pins/ SPI setup
 clk = RX
 din = TX
-cs = digitalio.DigitalInOut(A1) 
+cs = digitalio.DigitalInOut(A1)
 spi = busio.SPI(clk, MOSI=din)
 
 # Display is mapped to a number of 8x8 LED grids
@@ -74,234 +74,236 @@ display.brightness(DISPLAY_BRIGHTNESS)
 
 # Returns a new world. Specify width and height.
 def world(width, height):
-    row_length = width+2
-    first_cell = row_length+1
-    world_length = (height+2) * (width+2)
+	row_length = width+2
+	first_cell = row_length+1
+	world_length = (height+2) * (width+2)
 
-    w = {
-        'rows'          : height,
-        'columns'       : width,
-        'world_length'  : world_length,
-        'cells'         : bytearray(world_length),
-        'old_cells'     : bytearray(world_length),
-        'offsets'       : [-first_cell, -first_cell+1, -first_cell+2, \
-                          -1, +1, width+1, width+2, width+3]
-        }
-    return w
+	w = {
+		'rows'          : height,
+		'columns'       : width,
+		'world_length'  : world_length,
+		'cells'         : bytearray(world_length),
+		'old_cells'     : bytearray(world_length),
+		'offsets'       : [-first_cell, -first_cell+1, -first_cell+2, \
+						  -1, +1, width+1, width+2, width+3]
+		}
+	return w
 
 # Seeds the world from a source ('random', 'frog', 'clapper', 'blinker', ...)
 def seed_world(w, *argv):
 
-    rows = w["rows"]
-    columns = w["columns"]
+	rows = w["rows"]
+	columns = w["columns"]
 
-    # Clear the world
-    for c in range(w['world_length']): w['cells'][c]=0
+	# Clear the world
+	for c in range(w['world_length']): w['cells'][c]=0
 
-    # Seed the world depending on type (default 'random')
-    # May combine more than one
-    seed_type = argv if len(argv)>0 else ['carousel']
+	# Seed the world depending on type (default 'random')
+	# May combine more than one
+	seed_type = argv if len(argv)>0 else ['carousel']
 
-    if seed_type[0] == 'carousel':
-        seed_type = [[ \
-            'random',       \
-            'frogger',      \
-            'clapper',      \
-            'nova',         \
-            'blinkers',     \
-            'bullseye',     \
-            'glider'
-            ][randint(0,6)]]
+	if seed_type[0] == 'carousel':
+		seed_type = [[ \
+			'random',       \
+			'frogger',      \
+			'clapper',      \
+			'nova',         \
+			'blinkers',     \
+			'bullseye',     \
+			'glider'
+			][randint(0,6)]]
 
-    # Add the seeds
-    for type in seed_type:
-    
-        if (type=='random'):
-            cell = 1
-            for r in range(rows):
-                cell += (columns+2)
-                for c in range(columns):
-                    w['cells'][cell+c] = randint(0,1)
+	# Add the seeds
+	for type in seed_type:
 
-        elif (type=='frogger'):
-            pattern = bytes(
+		if (type=='random'):
+			cell = 1
+			for r in range(rows):
+				cell += (columns+2)
+				for c in range(columns):
+					w['cells'][cell+c] = randint(0,1)
 
-                b'....OOO.' +\
-                 '..O....O' +\
-                 '..O....O' +\
-                 '..O....O' +\
-                 '........' +\
-                 '....OOO.' +\
-                 '........' +\
-                 '........'
-                )
+		elif (type=='frogger'):
+			pattern = bytes(
 
-        elif (type=='clapper'):
-            pattern = bytes(
-                b'........' + \
-                 '........' + \
-                 '...O....' + \
-                 '...OO...' + \
-                 '...OO...' + \
-                 '....O...' + \
-                 '........' + \
-                 '........'
-                )
+				b'....OOO.' +\
+				 '..O....O' +\
+				 '..O....O' +\
+				 '..O....O' +\
+				 '........' +\
+				 '....OOO.' +\
+				 '........' +\
+				 '........'
+				)
 
-        elif (type=='blinkers'):
-            pattern = bytes(
-                b'........' +\
-                 'OOO..OOO' +\
-                 '........' +\
-                 '........' +\
-                 '........' +\
-                 '.O....O.' +\
-                 '.O....O.' +\
-                 '.O....O.'  
-                )
+		elif (type=='clapper'):
+			pattern = bytes(
+				b'........' + \
+				 '........' + \
+				 '...O....' + \
+				 '...OO...' + \
+				 '...OO...' + \
+				 '....O...' + \
+				 '........' + \
+				 '........'
+				)
 
-        elif (type=='nova'):
-            pattern = bytes(
-                b'........' +\
-                 '........' +\
-                 '........' +\
-                 '....O...' +\
-                 '...OOO..' +\
-                 '..OO.OO.' +\
-                 '........' +\
-                 '........'
-                )
+		elif (type=='blinkers'):
+			pattern = bytes(
+				b'......O.' +\
+				 'OOO...O.' +\
+				 '......O.' +\
+				 '........' +\
+				 '........' +\
+				 '......O.' +\
+				 'OOO...O.' +\
+				 '......O.'
+				)
 
-        elif (type=='bullseye'):
-            pattern = bytes(
-                b'........' +\
-                 'OOO.....' +\
-                 '........' +\
-                 '........' +\
-                 '........' +\
-                 '.....OO.' +\
-                 '.....O.O' +\
-                 '.....O..'
-                )
+		elif (type=='nova'):
+			pattern = bytes(
+				b'........' +\
+				 '........' +\
+				 '........' +\
+				 '....O...' +\
+				 '...OOO..' +\
+				 '..OO.OO.' +\
+				 '........' +\
+				 '........'
+				)
 
-        elif (type=='glider'):
-            pattern = bytes(
-                b'........' +\
-                 '........' +\
-                 '........' +\
-                 '........' +\
-                 '........' +\
-                 '.OO.....' +\
-                 'O.O.....' +\
-                 '..O.....'  \
-                )
-            
-        elif (type=='void'):
-            pattern = bytes(
-                b'........' +\
-                 '........' +\
-                 '........' +\
-                 '........' +\
-                 '........' +\
-                 '........' +\
-                 '........' +\
-                 '........'
-                )
+		elif (type=='bullseye'):
+			pattern = bytes(
+				b'........' +\
+				 'OOO.....' +\
+				 '........' +\
+				 '........' +\
+				 '........' +\
+				 '.....OO.' +\
+				 '.....O.O' +\
+				 '.....O..'
+				)
 
-        elif (type=='untitled'):
-            pattern = bytes(
-                b'........' +\
-                 '........' +\
-                 '........' +\
-                 '........' +\
-                 '........' +\
-                 '........' +\
-                 '........' +\
-                 '........'
-                )
+		elif (type=='glider'):
+			pattern = bytes(
+				b'........' +\
+				 '........' +\
+				 '........' +\
+				 '........' +\
+				 '........' +\
+				 '.OO.....' +\
+				 'O.O.....' +\
+				 '..O.....'  \
+				)
 
-        # This catches the case of 'random' or unknown
-        # since 'pattern' won't exist
-        try:
-            orientation = randint(0,3)
-            cell = 1
-            for r in range(8):
-                cell += (columns+2)
-                for c in range(8):
-                    if   orientation == 0: w['cells'][cell+c] = pattern[(r*8) + c] == ord('O')
-                    elif orientation == 1: w['cells'][cell+c] = pattern[(r*8) + (8-c-1)] == ord('O')
-                    elif orientation == 2: w['cells'][cell+c] = pattern[((8-r-1)*8) + c] == ord('O')
-                    elif orientation == 3: w['cells'][cell+c] = pattern[((8-r-1)*8) + (8-c-1)] == ord('O')
-        except:
-            pass
+		elif (type=='void'):
+			pattern = bytes(
+				b'........' +\
+				 '........' +\
+				 '........' +\
+				 '........' +\
+				 '........' +\
+				 '........' +\
+				 '........' +\
+				 '........'
+				)
+
+		elif (type=='untitled'):
+			pattern = bytes(
+				b'........' +\
+				 '........' +\
+				 '........' +\
+				 '........' +\
+				 '........' +\
+				 '........' +\
+				 '........' +\
+				 '........'
+				)
+
+		# This catches the case of 'random' or unknown
+		# since 'pattern' won't exist
+		try:
+			orientation = randint(0,3)
+			cell = int(((DISPLAY_WIDTH - 8)/2) + (((DISPLAY_HEIGHT - 8)/2) * (DISPLAY_WIDTH + 2)) + 1)
+			for r in range(8):
+				cell += (columns+2)
+				for c in range(8):
+					if   orientation == 0: w['cells'][cell+c] = pattern[(r*8) + c] == ord('O')
+					elif orientation == 1: w['cells'][cell+c] = pattern[(r*8) + (8-c-1)] == ord('O')
+					elif orientation == 2: w['cells'][cell+c] = pattern[((8-r-1)*8) + c] == ord('O')
+					elif orientation == 3: w['cells'][cell+c] = pattern[((8-r-1)*8) + (8-c-1)] == ord('O')
+		except:
+			pass
 
 # Calculate the world's next generation
 def next_generation(w):
 #
-    rows = w["rows"]
-    columns = w["columns"]
+	rows = w["rows"]
+	columns = w["columns"]
 
-    # Copy previous generation
-    w['old_cells'][:] = w['cells']
+	# Copy previous generation
+	w['old_cells'][:] = w['cells']
 
-    row_start = 1
-    for r in range(rows):
-        row_start += (columns+2)
-        for c in range(columns):
-            # The index of this world cell
-            world_cell = row_start + c
-            # Take a census of this cells neighbors
-            census = 0
-            for o in w['offsets']:
-                census += w['old_cells'][world_cell+o]
-            # census = sum([w['old_cells'][world_cell+o] for o in w['offsets']])
-            # Apply Conway's rules:
-            # Cells with 2 neighbors don't change
-            # Cells with 3 neighbors give birth
-            # Cells with <2 or >3 neighbors die
-            if census != 2: w['cells'][world_cell] = 1 if (census == 3) else 0
+	row_start = 1
+	for r in range(rows):
+		row_start += (columns+2)
+		for c in range(columns):
+			# The index of this world cell
+			world_cell = row_start + c
+			# Take a census of this cells neighbors
+			census = 0
+			for o in w['offsets']:
+				census += w['old_cells'][world_cell+o]
+			# census = sum([w['old_cells'][world_cell+o] for o in w['offsets']])
+			# Apply Conway's rules:
+			# Cells with 2 neighbors don't change
+			# Cells with 3 neighbors give birth
+			# Cells with <2 or >3 neighbors die
+			if census != 2: w['cells'][world_cell] = 1 if (census == 3) else 0
 
-    # Return True if population is stable (i.e. new == old), False otherwise        
-    return (w['cells']==w['old_cells'])
+	# Return True if population is stable (i.e. new == old), False otherwise
+	return (w['cells']==w['old_cells'])
 
 # Show the world by printing, on an LED grid, or both
 def show_world(w, *argv):
 
-    displays = argv if len(argv) > 0 else ['print']
-    for type in displays:
-        if type == 'print':
-            print_world(w)
-        elif type == 'matrix':
-            matrix_world(w)
+	displays = argv if len(argv) > 0 else ['print']
+	for type in displays:
+		if type == 'print':
+			print_world(w)
+		elif type == 'matrix':
+			matrix_world(w)
 
 def print_world(w):
 #
-    rows = w["rows"] + 2
-    columns = w["columns"] + 2
+	rows = w["rows"] + 2
+	columns = w["columns"] + 2
 #
-    for r in range(rows):
-        start_cell = columns * r
-        for c in w['cells'][start_cell:start_cell+columns]:
-            print(' .' if c == 0 else ' O', end="")
-        print()
-    print('\n')
+	for r in range(rows):
+		start_cell = columns * r
+		for c in w['cells'][start_cell:start_cell+columns]:
+			print(' .' if c == 0 else ' O', end="")
+		print()
+	print('\n')
 
 def matrix_world(w):
-    rows = w["rows"]
-    columns = w["columns"]
-    display.fill(0)
-    for r in range(rows):
-        start_cell = columns+3 + r*(columns+2)
-        for c in range(columns):
-            if (w['cells'][start_cell+c] != 0):
-                if MATRIX_ROTATE:
-                    x = ((c//8)*8) + 7 - r
-                    y = ((r//8)*8) + c % 8
-                else:
-                    x = c
-                    y = r
-                display.pixel(x,y,1)
-    display.show()
+	rows = w["rows"]
+	columns = w["columns"]
+	display.fill(0)
+	for r in range(rows):
+		start_cell = columns+3 + r*(columns+2)
+		for c in range(columns):
+			if (w['cells'][start_cell+c] != 0):
+				if MATRIX_ROTATE:
+					rmod = r % 8
+					cmod = c % 8
+					x = (c - cmod) + 7 - rmod
+					y = (r - rmod) + cmod
+				else:
+					x = c
+					y = r
+				display.pixel(x,y,1)
+	display.show()
 
 # Run a single simulation until the world is stable
 # or until 'max' generations.
@@ -319,12 +321,12 @@ def matrix_world(w):
 #   live_life(w, .25, 70, 'print', 'matrix')
 #
 def live_life(w, t, max, *argv):
-    stable = False
-    for g in range(GENERATION_MAXIMUM):
-        show_world(w, *argv)
-        stable = next_generation(w)
-        if stable: break
-        time.sleep(t)
+	stable = False
+	for g in range(GENERATION_MAXIMUM):
+		show_world(w, *argv)
+		stable = next_generation(w)
+		if stable: break
+		time.sleep(t)
 
 # Create a world
 w = world(DISPLAY_WIDTH, DISPLAY_HEIGHT)
@@ -341,6 +343,6 @@ w = world(DISPLAY_WIDTH, DISPLAY_HEIGHT)
 #   seed_world(x, 'blinkers', 'clapper')
 #
 while True:
-    seed_world(w, LIFE_SEED)
-    live_life(w, GENERATION_DELAY, GENERATION_MAXIMUM, OUTPUT_MODE)
-    time.sleep(TIMELINE_PAUSE)
+	seed_world(w, LIFE_SEED)
+	live_life(w, GENERATION_DELAY, GENERATION_MAXIMUM, OUTPUT_MODE)
+	time.sleep(TIMELINE_PAUSE)
