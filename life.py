@@ -69,8 +69,8 @@ display = MatrixN(spi, cs, DISPLAY_WIDTH, DISPLAY_HEIGHT)
 # Initialize the display
 display.init_display()
 display.brightness(DISPLAY_BRIGHTNESS)
-# display.fill(0)
-# display.show()
+display.fill(0)
+display.show()
 
 # Returns a new world. Specify width and height.
 def world(width, height):
@@ -150,14 +150,14 @@ def seed_world(w, *argv):
 
 		elif (type=='blinkers'):
 			pattern = bytes(
-				b'......O.' +\
-				 'OOO...O.' +\
-				 '......O.' +\
+				b'........' +\
+				 '.....OOO' +\
+				 '.O......' +\
+				 '.O......' +\
+				 '.O......' +\
 				 '........' +\
-				 '........' +\
-				 '......O.' +\
-				 'OOO...O.' +\
-				 '......O.'
+				 '.....OOO' +\
+				 '........'
 				)
 
 		elif (type=='nova'):
