@@ -54,9 +54,12 @@ LIFE_SEED = 'random'
 
 # Options for generation delay, maximum number of generations,
 # and, the pause in the timeline between simulations
-GENERATION_DELAY = .1
+GENERATION_DELAY = .10
 GENERATION_MAXIMUM = 300
 TIMELINE_PAUSE = 1.0
+
+# Number of repetitions for 2-generation repeat patterns
+MAX_PATTERN_REPEATS = 8
 
 # LED Grid pins/ SPI setup
 clk = RX
@@ -248,10 +251,6 @@ def next_generation(w):
 	rows = w["rows"]
 	columns = w["columns"]
 
-	# Copy previous generation
-	w['old_old_cells'][:] = w['old_cells']
-	w['old_cells'][:] = w['cells']
-
 	row_start = 1
 	for r in range(rows):
 		row_start += (columns+2)
@@ -268,9 +267,6 @@ def next_generation(w):
 			# Cells with 3 neighbors give birth
 			# Cells with <2 or >3 neighbors die
 			if census != 2: w['cells'][world_cell] = 1 if (census == 3) else 0
-
-	# Return True if population is stable (i.e. new == old), False otherwise
-	return (w['cells']==w['old_cells']) or w['cells']==w['old_old_cells'] or not button_reset.value
 
 # Show the world by printing, on an LED grid, or both
 def show_world(w, *argv):
@@ -329,11 +325,25 @@ def matrix_world(w):
 #   live_life(w, .25, 70, 'print', 'matrix')
 #
 def live_life(w, t, max, *argv):
-	stable = False
+	repeats = 0
 	for g in range(GENERATION_MAXIMUM):
 		show_world(w, *argv)
-		stable = next_generation(w)
-		if stable: break
+
+		# Copy previous generation
+		w['old_old_cells'][:] = w['old_cells']
+		w['old_cells'][:] = w['cells']
+
+		next_generation(w)
+
+		# Check if the world is stable (check two generations). if so, break
+		if (repeats > MAX_PATTERN_REPEATS) or not button_reset.value:
+		    break
+		elif (w['cells']==w['old_cells']) or (w['cells']==w['old_old_cells']):
+		    repeats += 1
+		elif repeats != 0:
+		    repeats = 0
+		if (repeats > MAX_PATTERN_REPEATS): break
+#		print(repeats)
 		time.sleep(t)
 
 # Create a world
