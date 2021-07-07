@@ -19,6 +19,7 @@
 # world['world_length'] = length of bytearray representing world
 # world['cells']   = A bytearray() representing all of the world's cells
 # world['old_cells']   = Bytearray() for previous generation
+# world['old_old_cells']   = Bytearray() for previous previous generation
 # world['offsets']      = Offsets to neighbors from a cell
 
 # In data, the world is represented as a linear array of bytes.
@@ -27,7 +28,7 @@
 #
 
 from random import randint
-from board import TX, RX, A1
+from board import TX, RX, A1, D0
 import busio, digitalio, time, math
 
 # MatrixN controls "n" matrices
@@ -54,7 +55,7 @@ LIFE_SEED = 'random'
 # Options for generation delay, maximum number of generations,
 # and, the pause in the timeline between simulations
 GENERATION_DELAY = .1
-GENERATION_MAXIMUM = 50
+GENERATION_MAXIMUM = 300
 TIMELINE_PAUSE = 1.0
 
 # LED Grid pins/ SPI setup
@@ -62,6 +63,11 @@ clk = RX
 din = TX
 cs = digitalio.DigitalInOut(A1)
 spi = busio.SPI(clk, MOSI=din)
+
+# Generation Reset Button
+button_reset = digitalio.DigitalInOut(D0)
+button_reset.direction = digitalio.Direction.INPUT
+button_reset.pull = digitalio.Pull.UP
 
 # Display is mapped to a number of 8x8 LED grids
 display = MatrixN(spi, cs, DISPLAY_WIDTH, DISPLAY_HEIGHT)
@@ -84,6 +90,7 @@ def world(width, height):
 		'world_length'  : world_length,
 		'cells'         : bytearray(world_length),
 		'old_cells'     : bytearray(world_length),
+		'old_old_cells' : bytearray(world_length),
 		'offsets'       : [-first_cell, -first_cell+1, -first_cell+2, \
 						  -1, +1, width+1, width+2, width+3]
 		}
@@ -242,6 +249,7 @@ def next_generation(w):
 	columns = w["columns"]
 
 	# Copy previous generation
+	w['old_old_cells'][:] = w['old_cells']
 	w['old_cells'][:] = w['cells']
 
 	row_start = 1
@@ -262,7 +270,7 @@ def next_generation(w):
 			if census != 2: w['cells'][world_cell] = 1 if (census == 3) else 0
 
 	# Return True if population is stable (i.e. new == old), False otherwise
-	return (w['cells']==w['old_cells'])
+	return (w['cells']==w['old_cells']) or w['cells']==w['old_old_cells'] or not button_reset.value
 
 # Show the world by printing, on an LED grid, or both
 def show_world(w, *argv):
@@ -311,7 +319,7 @@ def matrix_world(w):
 #   'w'     is the world
 #   't'     is the time delay between generations
 #   'max'   is the maximum number of generations
-#   *argv   can be empty, 'print' and/or 'led)grid'
+#   *argv   can be empty, 'print' and/or 'matrix'
 #
 # For example:
 #
