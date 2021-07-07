@@ -59,7 +59,7 @@ GENERATION_MAXIMUM = 300
 TIMELINE_PAUSE = 1.0
 
 # Number of repetitions for 2-generation repeat patterns
-MAX_PATTERN_REPEATS = 8
+MAX_PATTERN_REPEATS = 10
 
 # LED Grid pins/ SPI setup
 clk = RX
