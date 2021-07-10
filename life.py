@@ -267,8 +267,7 @@ def seed_world(w, *argv):
 		# since 'pattern' won't exist
 		try:
 			orientation = randint(0,3)
-                        cell = 1
-			#cell = int(((DISPLAY_WIDTH - 8)/2) + (((DISPLAY_HEIGHT - 8)/2) * (DISPLAY_WIDTH + 2)) + 1)
+			cell = int(((DISPLAY_WIDTH - 8)/2) + (((DISPLAY_HEIGHT - 8)/2) * (DISPLAY_WIDTH + 2)) + 1)
 			for r in range(8):
 				cell += (columns+2)
 				for c in range(8):
@@ -282,7 +281,7 @@ def seed_world(w, *argv):
 
 # Calculate the world's next generation
 def next_generation(w):
-#
+
 	rows = w["rows"]
 	columns = w["columns"]
 
@@ -299,7 +298,7 @@ def next_generation(w):
 			census = 0
 			for o in w['offsets']:
 				census += past_cells[world_cell+o]
-				#census = sum([w['past_cells'][world_cell+o] for o in w['offsets']])
+			
 			# Apply Conway's rules:
 			# Cells with 2 neighbors don't change
 			# Cells with 3 neighbors give birth
@@ -317,10 +316,10 @@ def show_world(w, *argv):
 			matrix_world(w)
 
 def print_world(w):
-#
+
 	rows = w["rows"] + 2
 	columns = w["columns"] + 2
-#
+
 	for r in range(rows):
 		start_cell = columns * r
 		for c in w['cells'][start_cell:start_cell+columns]:
@@ -365,20 +364,18 @@ def matrix_world(w):
 def live_life(w, t, max, *argv):
 	repeats = 0
 	for g in range(GENERATION_MAXIMUM):
+		
+		# Display the generation, generate the next one
+		# and compress it into history
 		show_world(w, *argv)
-
-		# Copy previous generation
-#		w['past_cells'][1][:] = w['past_cells'][0]
-#		w['past_cells'][0][:] = compress_world(w)
-
 		next_generation(w)
 		compress_world(w)
-#		cw = compress_world(w)
 
-		# Check if the world is stable (check two generations). if so, break
+		# Check if the world is stable. if so, break
 		if (repeats > MAX_PATTERN_REPEATS) or not button_reset.value:
 		    break
-#		elif (cw==w['past_cells'][0]) or (cw==w['past_cells'][1]):
+		# See if this world is unique in history (increment repeat number
+		# so we can let the pattern go for awhile to make it apparent)
 		elif not unique_world(w):
 		    repeats += 1
 
