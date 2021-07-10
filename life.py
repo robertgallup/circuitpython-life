@@ -18,8 +18,8 @@
 # world['columns'] = Number of columns in the world grid
 # world['world_length'] = length of bytearray representing world
 # world['cells']   = A bytearray() representing all of the world's cells
-# world['old_cells']   = Bytearray() for previous generation
-# world['old_old_cells']   = Bytearray() for previous previous generation
+# world['past_cells']   = Bytearray() for previous generation
+# world['old_past_cells']   = Bytearray() for previous previous generation
 # world['offsets']      = Offsets to neighbors from a cell
 
 # In data, the world is represented as a linear array of bytes.
@@ -50,13 +50,15 @@ OUTPUT_MODE = 'matrix'
 
 # How to seed the world (other options are available, see below)
 LIFE_SEED = 'random'
-# LIFE_SEED = 'carousel'
+#LIFE_SEED = 'untitled'
 
 # Options for generation delay, maximum number of generations,
-# and, the pause in the timeline between simulations
+# the pause in the timeline between simulations, and the number of 
+# generations to check for a repeat pattern
 GENERATION_DELAY = .10
 GENERATION_MAXIMUM = 300
 TIMELINE_PAUSE = 1.0
+HISTORY_DEPTH = 4
 
 # Number of repetitions for 2-generation repeat patterns
 MAX_PATTERN_REPEATS = 10
@@ -86,18 +88,45 @@ def world(width, height):
 	row_length = width+2
 	first_cell = row_length+1
 	world_length = (height+2) * (width+2)
-
 	w = {
-		'rows'          : height,
-		'columns'       : width,
-		'world_length'  : world_length,
-		'cells'         : bytearray(world_length),
-		'old_cells'     : bytearray(world_length),
-		'old_old_cells' : bytearray(world_length),
-		'offsets'       : [-first_cell, -first_cell+1, -first_cell+2, \
+		'rows'		: height,
+		'columns'	: width,
+		'world_length'	: world_length,
+		'cells'		: bytearray(world_length),
+		'past_cells'	: [bytearray(math.ceil(world_length/8)) for l in range(HISTORY_DEPTH+1)],
+		'offsets'	: [-first_cell, -first_cell+1, -first_cell+2, \
 						  -1, +1, width+1, width+2, width+3]
 		}
 	return w
+
+# Compress the a world's cells, 1 bit per cell
+def compress_world (w):
+
+    # Shift old cells by one to make room
+    for c in range(HISTORY_DEPTH, 0, -1):
+	w['past_cells'][c][:] = w['past_cells'][c-1]
+
+    # Compress the current cells into the past_cells list
+    # Each cell will be 0 or 1. Shift the rightmost bit to the
+    # correct position (0-7). When each output byte is filled, go to
+    # to the next byte
+    output_byte = 0
+    w['past_cells'][0][output_byte] = 0
+    b = 0
+    for c in range (w['world_length']):
+	w['past_cells'][0][output_byte] = (w['past_cells'][0][output_byte] << 1) | w['cells'][c]
+	b = (b+1) % 8
+	if (b==0):
+            output_byte += 1
+            w['past_cells'][0][output_byte] = 0
+
+
+# Returns True if current is unique in recent generations, False otherwise
+def unique_world(w):
+    for g in range(HISTORY_DEPTH):
+	if (w['past_cells'][0] == w['past_cells'][g+1]):
+	    return False
+    return True
 
 # Seeds the world from a source ('random', 'frog', 'clapper', 'blinker', ...)
 def seed_world(w, *argv):
@@ -107,6 +136,10 @@ def seed_world(w, *argv):
 
 	# Clear the world
 	for c in range(w['world_length']): w['cells'][c]=0
+
+	# Clear past worlds
+        for c in range(HISTORY_DEPTH+1):
+            w['past_cells'][c][:] = bytearray(math.ceil(w['world_length']/8))
 
 	# Seed the world depending on type (default 'random')
 	# May combine more than one
@@ -120,7 +153,7 @@ def seed_world(w, *argv):
 			'nova',         \
 			'blinkers',     \
 			'bullseye',     \
-			'glider'
+			'glider'	\
 			][randint(0,6)]]
 
 	# Add the seeds
@@ -234,7 +267,8 @@ def seed_world(w, *argv):
 		# since 'pattern' won't exist
 		try:
 			orientation = randint(0,3)
-			cell = int(((DISPLAY_WIDTH - 8)/2) + (((DISPLAY_HEIGHT - 8)/2) * (DISPLAY_WIDTH + 2)) + 1)
+                        cell = 1
+			#cell = int(((DISPLAY_WIDTH - 8)/2) + (((DISPLAY_HEIGHT - 8)/2) * (DISPLAY_WIDTH + 2)) + 1)
 			for r in range(8):
 				cell += (columns+2)
 				for c in range(8):
@@ -244,6 +278,7 @@ def seed_world(w, *argv):
 					elif orientation == 3: w['cells'][cell+c] = pattern[((8-r-1)*8) + (8-c-1)] == ord('O')
 		except:
 			pass
+		
 
 # Calculate the world's next generation
 def next_generation(w):
@@ -251,7 +286,10 @@ def next_generation(w):
 	rows = w["rows"]
 	columns = w["columns"]
 
-	row_start = 1
+	past_cells = bytearray(w['world_length'])
+        past_cells[:] = w['cells']
+
+        row_start = 1
 	for r in range(rows):
 		row_start += (columns+2)
 		for c in range(columns):
@@ -260,13 +298,13 @@ def next_generation(w):
 			# Take a census of this cells neighbors
 			census = 0
 			for o in w['offsets']:
-				census += w['old_cells'][world_cell+o]
-			# census = sum([w['old_cells'][world_cell+o] for o in w['offsets']])
+				census += past_cells[world_cell+o]
+				#census = sum([w['past_cells'][world_cell+o] for o in w['offsets']])
 			# Apply Conway's rules:
 			# Cells with 2 neighbors don't change
 			# Cells with 3 neighbors give birth
 			# Cells with <2 or >3 neighbors die
-			if census != 2: w['cells'][world_cell] = 1 if (census == 3) else 0
+			if (census!=2): w['cells'][world_cell] = 1 if (census == 3) else 0
 
 # Show the world by printing, on an LED grid, or both
 def show_world(w, *argv):
@@ -330,20 +368,20 @@ def live_life(w, t, max, *argv):
 		show_world(w, *argv)
 
 		# Copy previous generation
-		w['old_old_cells'][:] = w['old_cells']
-		w['old_cells'][:] = w['cells']
+#		w['past_cells'][1][:] = w['past_cells'][0]
+#		w['past_cells'][0][:] = compress_world(w)
 
 		next_generation(w)
+		compress_world(w)
+#		cw = compress_world(w)
 
 		# Check if the world is stable (check two generations). if so, break
 		if (repeats > MAX_PATTERN_REPEATS) or not button_reset.value:
 		    break
-		elif (w['cells']==w['old_cells']) or (w['cells']==w['old_old_cells']):
+#		elif (cw==w['past_cells'][0]) or (cw==w['past_cells'][1]):
+		elif not unique_world(w):
 		    repeats += 1
-		elif repeats != 0:
-		    repeats = 0
-		if (repeats > MAX_PATTERN_REPEATS): break
-#		print(repeats)
+
 		time.sleep(t)
 
 # Create a world
