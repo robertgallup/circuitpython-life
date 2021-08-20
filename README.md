@@ -43,7 +43,7 @@ These scripts require the following adafruit CircuitPython modules:
 **adafruit_max7219**  
 **adafruit_framebuf.mpy**  
 
-And the following custom module ([https://github.com/robertgallup/circuitpython-ledmatrix](LED Matrix Repository)):
+And the following custom module ([LED Matrix Repository](https://github.com/robertgallup/circuitpython-ledmatrix)):
 
 **ledmatrix.py**    
 
